@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trading Terminal Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(180deg, #000000 0%, #1c1c1e 100%);
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Apple Stocks Color Palette */
+        :root {
+            --bg-primary: #000000;
+            --bg-secondary: #1c1c1e;
+            --bg-tertiary: #2c2c2e;
+            --bg-elevated: #3a3a3c;
+            --text-primary: #ffffff;
+            --text-secondary: #98989d;
+            --text-tertiary: #6e6e73;
+            --green-positive: #30d158;
+            --red-negative: #ff453a;
+            --blue-accent: #0a84ff;
+            --separator: #38383a;
+            --hover-bg: rgba(58, 58, 60, 0.6);
+        }
+
+        /* Top Navigation Bar - Apple Style */
+        .top-nav {
+            background: rgba(28, 28, 30, 0.95);
+            backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 0.5px solid var(--separator);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .nav-title {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .nav-button {
+            padding: 6px 16px;
+            background: var(--bg-tertiary);
+            border: none;
+            border-radius: 8px;
+            color: var(--blue-accent);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-button:hover {
+            background: var(--bg-elevated);
+            transform: scale(1.02);
+        }
+
+        .nav-button.active {
+            background: var(--blue-accent);
+            color: white;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 14px;
+            background: rgba(10, 132, 255, 0.1);
+            border-radius: 20px;
+            border: 0.5px solid rgba(10, 132, 255, 0.3);
+        }
+
+        .demo-banner {
+            padding: 10px 20px;
+            background: linear-gradient(90deg, rgba(10, 132, 255, 0.16), rgba(48, 209, 88, 0.12));
+            border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .user-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--blue-accent), #5e5ce6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--blue-accent);
+        }
+
+        /* Main Container - Flexible Grid */
+        .main-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            grid-template-rows: 1fr;
+            height: calc(100vh - 49px);
+            gap: 0;
+        }
+
+        /* Resizable Panels */
+        .panel {
+            position: relative;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: var(--bg-primary);
+        }
+
+        .panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .panel::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .panel::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 1px;
+            height: 100%;
+            background: var(--separator);
+            cursor: col-resize;
+            z-index: 10;
+        }
+
+        .resize-handle:hover {
+            background: var(--blue-accent);
+            width: 2px;
+        }
+
+        /* Left Panel - Sidebar */
+        .left-panel {
+            border-right: 0.5px solid var(--separator);
+            padding: 20px;
+        }
+
+        /* Collapsible Section */
+        .collapsible-section {
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            cursor: pointer;
+            user-select: none;
+            transition: opacity 0.2s;
+        }
+
+        .section-header:hover {
+            opacity: 0.8;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .collapse-icon {
+            font-size: 12px;
+            color: var(--text-secondary);
+            transition: transform 0.3s ease;
+        }
+
+        .collapse-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+        }
+
+        .section-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        /* Stock Item - Apple Style */
+        .stock-item {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 0.5px solid transparent;
+        }
+
+        .stock-item:hover {
+            background: var(--bg-tertiary);
+            transform: translateX(4px);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .stock-symbol {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stock-price {
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .stock-name {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .stock-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .positive {
+            color: var(--green-positive);
+            background: rgba(48, 209, 88, 0.15);
+        }
+
+        .negative {
+            color: var(--red-negative);
+            background: rgba(255, 69, 58, 0.15);
+        }
+
+        /* Center Panel - Charts */
+        .center-panel {
+            padding: 20px;
+            background: var(--bg-primary);
+        }
+
+        /* Time Period Selector - Apple Style */
+        .time-selector {
+            display: flex;
+            gap: 6px;
+            padding: 4px;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            width: fit-content;
+        }
+
+        .time-btn {
+            padding: 6px 14px;
+            background: transparent;
+            border: none;
+            border-radius: 7px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .time-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .time-btn.active {
+            background: var(--bg-elevated);
+            color: var(--blue-accent);
+        }
+
+        /* Chart Card - Apple Style */
+        .chart-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 0.5px solid transparent;
+        }
+
+        .chart-card:hover {
+            background: var(--bg-tertiary);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .chart-title-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-symbol-large {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .chart-company-name {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .chart-stats {
+            text-align: right;
+        }
+
+        .chart-current-price {
+            font-size: 26px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .chart-canvas-container {
+            width: 100%;
+            height: 180px;
+            position: relative;
+        }
+
+        /* Right Panel - AI Chat */
+        .right-panel {
+            border-left: 0.5px solid var(--separator);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 0.5px solid var(--separator);
+        }
+
+        .chat-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .chat-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 85%;
+            font-size: 14px;
+            line-height: 1.4;
+            animation: messageSlide 0.3s ease;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            background: var(--blue-accent);
+            align-self: flex-end;
+            color: white;
+        }
+
+        .message.assistant {
+            background: var(--bg-tertiary);
+            align-self: flex-start;
+            color: var(--text-primary);
+        }
+
+        .chat-input-container {
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-top: 0.5px solid var(--separator);
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            padding: 4px 4px 4px 16px;
+            align-items: center;
+        }
+
+        #chatInput {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            padding: 8px 0;
+        }
+
+        #chatInput::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .send-btn {
+            width: 32px;
+            height: 32px;
+            background: var(--blue-accent);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(10, 132, 255, 0.4);
+        }
+
+        /* Modal - Apple Style */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 0.5px solid var(--separator);
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            width: 30px;
+            height: 30px;
+            border-radius: 15px;
+            background: var(--bg-tertiary);
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-elevated);
+            transform: scale(1.1);
+        }
+
+        .modal-detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 0.5px solid var(--separator);
+        }
+
+        .modal-detail-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .modal-detail-value {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* News Feed */
+        .news-item {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 0.5px solid transparent;
+        }
+
+        .news-item:hover {
+            background: var(--bg-tertiary);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .news-source {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .news-headline {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .news-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Balance Card */
+        .balance-card {
+            background: linear-gradient(135deg, rgba(10, 132, 255, 0.15), rgba(94, 92, 230, 0.15));
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 10px;
+            border: 0.5px solid rgba(10, 132, 255, 0.3);
+        }
+
+        .balance-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .balance-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <div class="top-nav">
+        <div class="nav-title">AI Trading Terminal Demo</div>
+        <div class="nav-controls">
+            <button class="nav-button active" data-model="gpt-4">GPT-4</button>
+            <button class="nav-button" data-model="claude-4.5">Claude 4.5</button>
+            <button class="nav-button" data-model="gpt-3.5">GPT-3.5</button>
+            <div class="user-info">
+                <div class="user-avatar">DM</div>
+                <div class="user-name">Demo Mode</div>
+                <span style="font-size: 11px; color: var(--text-tertiary);">• Preview Only</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-banner">
+        Public-safe showcase build. Quotes, research, portfolio, balance, and order flows use demo data only.
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Panel -->
+        <div class="panel left-panel" id="leftPanel">
+            <div class="resize-handle" data-panel="left"></div>
+
+            <!-- Portfolio Section -->
+            <div class="collapsible-section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">Portfolio</div>
+                    <div class="collapse-icon">▼</div>
+                </div>
+                <div class="section-content">
+                    <div id="portfolioContainer"></div>
+                </div>
+            </div>
+
+            <!-- Account Balance Section -->
+            <div class="collapsible-section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">Account Balance</div>
+                    <div class="collapse-icon">▼</div>
+                </div>
+                <div class="section-content">
+                    <div id="balanceContainer"></div>
+                </div>
+            </div>
+
+            <!-- E*TRADE Research Section -->
+            <div class="collapsible-section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">E*TRADE Research</div>
+                    <div class="collapse-icon">▼</div>
+                </div>
+                <div class="section-content">
+                    <div class="time-selector" style="width: 100%; margin-bottom: 12px;">
+                        <div class="time-btn active" data-category="undervalued" style="flex: 1; text-align: center;">Under</div>
+                        <div class="time-btn" data-category="overvalued" style="flex: 1; text-align: center;">Over</div>
+                    </div>
+                    <div class="time-selector" style="width: 100%; margin-bottom: 12px;">
+                        <div class="time-btn" data-category="buyrated" style="flex: 1; text-align: center;">Buy</div>
+                        <div class="time-btn" data-category="sellrated" style="flex: 1; text-align: center;">Sell</div>
+                    </div>
+                    <div class="time-selector" style="width: 100%; margin-bottom: 12px;">
+                        <div class="time-btn" data-category="bullish" style="flex: 1; text-align: center;">Bullish</div>
+                        <div class="time-btn" data-category="bearish" style="flex: 1; text-align: center;">Bearish</div>
+                    </div>
+                    <div id="researchContainer"></div>
+                </div>
+            </div>
+
+            <!-- Apple News Section -->
+            <div class="collapsible-section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">AAPL Stock News</div>
+                    <div class="collapse-icon">▼</div>
+                </div>
+                <div class="section-content">
+                    <div id="newsContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Panel -->
+        <div class="panel center-panel" id="centerPanel">
+            <div class="resize-handle" data-panel="center"></div>
+
+            <!-- Time Period Selector -->
+            <div class="time-selector">
+                <div class="time-btn" data-period="1D">1D</div>
+                <div class="time-btn" data-period="1W">1W</div>
+                <div class="time-btn active" data-period="1M">1M</div>
+                <div class="time-btn" data-period="3M">3M</div>
+                <div class="time-btn" data-period="6M">6M</div>
+                <div class="time-btn" data-period="YTD">YTD</div>
+                <div class="time-btn" data-period="1Y">1Y</div>
+                <div class="time-btn" data-period="5Y">5Y</div>
+                <div class="time-btn" data-period="ALL">ALL</div>
+            </div>
+
+            <!-- Market Charts -->
+            <div id="chartsContainer"></div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="panel right-panel" id="rightPanel">
+            <div class="chat-header">
+                <div class="chat-title">AI Trading Assistant</div>
+                <div class="chat-subtitle">Public demo with simulated data and trade previews</div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    Public demo mode is active.
+
+                    Ask for a stock quote, a portfolio summary, account balance, or a sample trade preview. This build is for showcasing the product, so it never connects to a live brokerage account.
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <input type="text" id="chatInput" placeholder="Ask about stocks, trades, or market insights..." />
+                    <button class="send-btn" onclick="sendMessage()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Stock Details</div>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentModel = 'gpt-4';
+        let currentPeriod = '1M';
+        let currentResearchCategory = 'undervalued';
+        let stockCharts = {};
+
+        // Panel Resizing
+        let isResizing = false;
+        let currentPanel = null;
+
+        document.querySelectorAll('.resize-handle').forEach(handle => {
+            handle.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                currentPanel = e.target.dataset.panel;
+                document.body.style.cursor = 'col-resize';
+                e.preventDefault();
+            });
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            if (currentPanel === 'left') {
+                const newWidth = e.clientX;
+                if (newWidth > 250 && newWidth < 500) {
+                    document.getElementById('leftPanel').style.width = newWidth + 'px';
+                }
+            } else if (currentPanel === 'center') {
+                const container = document.querySelector('.main-container');
+                const leftWidth = document.getElementById('leftPanel').offsetWidth;
+                const rightWidth = document.getElementById('rightPanel').offsetWidth;
+                const newRightWidth = window.innerWidth - e.clientX;
+                if (newRightWidth > 300 && newRightWidth < 600) {
+                    document.getElementById('rightPanel').style.width = newRightWidth + 'px';
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
+            currentPanel = null;
+            document.body.style.cursor = 'default';
+        });
+
+        // Collapsible Sections
+        function toggleSection(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.collapse-icon');
+            
+            content.classList.toggle('collapsed');
+            icon.classList.toggle('collapsed');
+        }
+
+        // AI Model Selection
+        document.querySelectorAll('.nav-button[data-model]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.nav-button[data-model]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentModel = btn.dataset.model;
+            });
+        });
+
+        // Time Period Selection
+        document.querySelectorAll('.time-btn[data-period]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.time-btn[data-period]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentPeriod = btn.dataset.period;
+                loadCharts();
+            });
+        });
+
+        // Research Category Selection
+        document.querySelectorAll('.time-btn[data-category]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.time-btn[data-category]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentResearchCategory = btn.dataset.category;
+                loadResearch();
+            });
+        });
+
+        // Load Portfolio
+        function loadPortfolio() {
+            axios.get('/api/portfolio')
+                .then(response => {
+                    const container = document.getElementById('portfolioContainer');
+                    const data = response.data;
+
+                    if (data.positions.length === 0) {
+                        container.innerHTML = '<div class="stock-item"><div class="stock-name" style="text-align: center;">No positions yet</div></div>';
+                        return;
+                    }
+
+                    container.innerHTML = '';
+                    data.positions.forEach(position => {
+                        const isGain = position.gain_loss >= 0;
+                        const div = document.createElement('div');
+                        div.className = 'stock-item';
+                        div.onclick = () => showStockDetail(position);
+                        div.innerHTML = `
+                            <div class="stock-header">
+                                <div class="stock-symbol">${position.symbol}</div>
+                                <div class="stock-price ${isGain ? 'positive' : 'negative'}">$${position.market_value.toFixed(2)}</div>
+                            </div>
+                            <div class="stock-name">${position.name}</div>
+                            <div class="stock-change ${isGain ? 'positive' : 'negative'}">
+                                ${isGain ? '+' : ''}$${position.gain_loss.toFixed(2)} (${isGain ? '+' : ''}${position.gain_loss_pct.toFixed(2)}%)
+                            </div>
+                        `;
+                        container.appendChild(div);
+                    });
+                });
+        }
+
+        // Load Balance
+        function loadBalance() {
+            axios.get('/api/balance')
+                .then(response => {
+                    const container = document.getElementById('balanceContainer');
+                    const data = response.data;
+                    container.innerHTML = `
+                        <div class="balance-card">
+                            <div class="balance-label">Total Value</div>
+                            <div class="balance-value">$${data.total_value.toLocaleString()}</div>
+                        </div>
+                        <div class="stock-item" style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-secondary);">Cash</span>
+                            <span>$${data.cash.toLocaleString()}</span>
+                        </div>
+                        <div class="stock-item" style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-secondary);">Buying Power</span>
+                            <span>$${data.buying_power.toLocaleString()}</span>
+                        </div>
+                    `;
+                });
+        }
+
+        // Load Research
+        function loadResearch() {
+            axios.get(`/api/research/${currentResearchCategory}`)
+                .then(response => {
+                    const container = document.getElementById('researchContainer');
+                    container.innerHTML = '';
+
+                    response.data.slice(0, 5).forEach(stock => {
+                        const div = document.createElement('div');
+                        div.className = 'stock-item';
+                        div.onclick = () => showResearchDetail(stock);
+                        
+                        let changeHTML = '';
+                        if (stock.upside) {
+                            const isPositive = stock.upside > 0;
+                            changeHTML = `<div class="stock-change ${isPositive ? 'positive' : 'negative'}">${isPositive ? '↑' : '↓'} ${Math.abs(stock.upside).toFixed(1)}%</div>`;
+                        } else if (stock.downside) {
+                            changeHTML = `<div class="stock-change negative">↓ ${Math.abs(stock.downside).toFixed(1)}%</div>`;
+                        } else if (stock.momentum) {
+                            const isPositive = stock.momentum.startsWith('+');
+                            changeHTML = `<div class="stock-change ${isPositive ? 'positive' : 'negative'}">${stock.momentum}</div>`;
+                        }
+
+                        div.innerHTML = `
+                            <div class="stock-header">
+                                <div class="stock-symbol">${stock.symbol}</div>
+                                <div class="stock-price">$${stock.last}</div>
+                            </div>
+                            <div class="stock-name">${stock.company}</div>
+                            ${changeHTML}
+                        `;
+                        container.appendChild(div);
+                    });
+                });
+        }
+
+        // Load Charts
+        function loadCharts() {
+            axios.get('/api/watchlist')
+                .then(response => {
+                    const symbols = response.data.symbols.join(',');
+                    return axios.get(`/api/market/${symbols}`);
+                })
+                .then(response => {
+                    const container = document.getElementById('chartsContainer');
+                    container.innerHTML = '';
+
+                    response.data.forEach(stock => {
+                        const isPositive = stock.change >= 0;
+                        const div = document.createElement('div');
+                        div.className = 'chart-card';
+                        div.onclick = () => showStockDetail(stock);
+                        div.innerHTML = `
+                            <div class="chart-header">
+                                <div class="chart-title-group">
+                                    <div class="chart-symbol-large">${stock.symbol}</div>
+                                    <div class="chart-company-name">${stock.name}</div>
+                                </div>
+                                <div class="chart-stats">
+                                    <div class="chart-current-price">$${stock.price.toFixed(2)}</div>
+                                    <div class="stock-change ${isPositive ? 'positive' : 'negative'}">
+                                        ${isPositive ? '+' : ''}$${stock.change.toFixed(2)} (${isPositive ? '+' : ''}${stock.change_pct.toFixed(2)}%)
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chart-canvas-container">
+                                <canvas id="chart-${stock.symbol}"></canvas>
+                            </div>
+                        `;
+                        container.appendChild(div);
+
+                        setTimeout(() => createChart(stock.symbol, stock.price, isPositive), 100);
+                    });
+                });
+        }
+
+        // Create Chart
+        function createChart(symbol, basePrice, isPositive) {
+            const canvas = document.getElementById(`chart-${symbol}`);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const data = [];
+            let price = basePrice * 0.98;
+
+            for (let i = 0; i < 50; i++) {
+                price += (Math.random() - 0.5) * (basePrice * 0.015);
+                data.push(price);
+            }
+
+            if (stockCharts[symbol]) {
+                stockCharts[symbol].destroy();
+            }
+
+            stockCharts[symbol] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array(50).fill(''),
+                    datasets: [{
+                        data: data,
+                        borderColor: isPositive ? 'rgba(48, 209, 88, 1)' : 'rgba(255, 69, 58, 1)',
+                        backgroundColor: isPositive ? 'rgba(48, 209, 88, 0.1)' : 'rgba(255, 69, 58, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        // Load Apple News
+        function loadNews() {
+            // Apple STOCK market news (trading/financial news about AAPL)
+            const newsData = [
+                { source: 'Bloomberg Markets', headline: 'AAPL stock rises 2.1% as analysts raise price targets to $290', time: '1h ago' },
+                { source: 'MarketWatch', headline: 'Apple stock (AAPL) sees institutional buying surge, volume up 45%', time: '3h ago' },
+                { source: 'CNBC Trading', headline: 'Goldman Sachs upgrades AAPL to Strong Buy, citing iPhone cycle', time: '6h ago' },
+                { source: 'Reuters Markets', headline: 'AAPL options activity suggests bullish sentiment ahead of earnings', time: '8h ago' },
+                { source: 'WSJ Markets', headline: 'Apple shares outperform tech sector as Q4 revenue beats expectations', time: '12h ago' },
+                { source: 'Seeking Alpha', headline: 'AAPL technical analysis: Stock breaks above 200-day MA resistance', time: '1d ago' },
+                { source: 'Barron\'s', headline: 'Why Apple stock could hit $300 by year-end, analysts say', time: '1d ago' }
+            ];
+
+            const container = document.getElementById('newsContainer');
+            container.innerHTML = '';
+
+            newsData.forEach(news => {
+                const div = document.createElement('div');
+                div.className = 'news-item';
+                div.onclick = () => showNewsDetail(news);
+                div.innerHTML = `
+                    <div class="news-source">${news.source}</div>
+                    <div class="news-headline">${news.headline}</div>
+                    <div class="news-time">${news.time}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Show Stock Detail Modal
+        function showStockDetail(stock) {
+            const modal = document.getElementById('detailModal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            title.textContent = stock.symbol || stock.name;
+            body.innerHTML = `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Company</div>
+                    <div class="modal-detail-value">${stock.name || stock.company}</div>
+                </div>
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Price</div>
+                    <div class="modal-detail-value">$${(stock.price || stock.last || stock.current_price).toFixed(2)}</div>
+                </div>
+                ${stock.change ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Change</div>
+                    <div class="modal-detail-value ${stock.change >= 0 ? 'positive' : 'negative'}">
+                        ${stock.change >= 0 ? '+' : ''}$${stock.change.toFixed(2)} (${stock.change >= 0 ? '+' : ''}${stock.change_pct.toFixed(2)}%)
+                    </div>
+                </div>` : ''}
+                ${stock.volume ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Volume</div>
+                    <div class="modal-detail-value">${stock.volume.toLocaleString()}</div>
+                </div>` : ''}
+                ${stock.quantity ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Quantity</div>
+                    <div class="modal-detail-value">${stock.quantity} shares</div>
+                </div>` : ''}
+                ${stock.market_value ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Market Value</div>
+                    <div class="modal-detail-value">$${stock.market_value.toFixed(2)}</div>
+                </div>` : ''}
+            `;
+
+            modal.classList.add('active');
+        }
+
+        // Show Research Detail Modal
+        function showResearchDetail(stock) {
+            const modal = document.getElementById('detailModal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            title.textContent = `${stock.symbol} Research`;
+            body.innerHTML = `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Company</div>
+                    <div class="modal-detail-value">${stock.company}</div>
+                </div>
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Current Price</div>
+                    <div class="modal-detail-value">$${stock.last}</div>
+                </div>
+                ${stock.trefis ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Target Price</div>
+                    <div class="modal-detail-value">$${stock.trefis}</div>
+                </div>` : ''}
+                ${stock.target ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Target Price</div>
+                    <div class="modal-detail-value">$${stock.target}</div>
+                </div>` : ''}
+                ${stock.upside ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">${stock.upside > 0 ? 'Upside' : 'Downside'}</div>
+                    <div class="modal-detail-value ${stock.upside > 0 ? 'positive' : 'negative'}">${Math.abs(stock.upside).toFixed(2)}%</div>
+                </div>` : ''}
+                ${stock.downside ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Downside</div>
+                    <div class="modal-detail-value negative">${Math.abs(stock.downside).toFixed(2)}%</div>
+                </div>` : ''}
+                ${stock.report ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Report</div>
+                    <div class="modal-detail-value">${stock.report}</div>
+                </div>` : ''}
+                ${stock.rating ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Rating</div>
+                    <div class="modal-detail-value">${stock.rating}</div>
+                </div>` : ''}
+                ${stock.analyst ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Analyst</div>
+                    <div class="modal-detail-value">${stock.analyst}</div>
+                </div>` : ''}
+                ${stock.signal ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Signal</div>
+                    <div class="modal-detail-value">${stock.signal}</div>
+                </div>` : ''}
+                ${stock.description ? `
+                <div class="modal-detail-row">
+                    <div class="modal-detail-label">Description</div>
+                    <div class="modal-detail-value">${stock.description}</div>
+                </div>` : ''}
+            `;
+
+            modal.classList.add('active');
+        }
+
+        // Show News Detail
+        function showNewsDetail(news) {
+            const modal = document.getElementById('detailModal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            title.textContent = news.source;
+            body.innerHTML = `
+                <div style="padding: 20px 0;">
+                    <div style="font-size: 18px; font-weight: 600; line-height: 1.4; margin-bottom: 12px;">${news.headline}</div>
+                    <div style="font-size: 13px; color: var(--text-secondary);">${news.time}</div>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        // Close Modal
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        // Chat
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            addMessage('user', message);
+            input.value = '';
+
+            axios.post('/api/chat', { message, model: currentModel })
+                .then(response => {
+                    addMessage('assistant', response.data.response);
+                });
+        }
+
+        function addMessage(role, content) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+            div.textContent = content;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Initialize
+        loadPortfolio();
+        loadBalance();
+        loadResearch();
+        loadCharts();
+        loadNews();
+
+        setInterval(() => {
+            loadPortfolio();
+            loadBalance();
+        }, 30000);
+
+        setInterval(() => {
+            loadResearch();
+        }, 60000);
+
+        setInterval(() => {
+            loadCharts();
+        }, 10000);
+    </script>
+</body>
+</html>
