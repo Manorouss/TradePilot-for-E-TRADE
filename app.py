@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Public-safe showcase app for the AI trading terminal."""
+"""Public-safe showcase app for TradePilot for E*TRADE."""
 
 from __future__ import annotations
 
@@ -180,16 +180,32 @@ def extract_order(message: str) -> dict | None:
 def generate_demo_response(message: str) -> str:
     lower = message.lower()
 
+    if any(
+        phrase in lower
+        for phrase in [
+            "what do you do",
+            "how does it work",
+            "what is this",
+            "what can you do",
+            "how can you help",
+            "ai active",
+            "etrade account",
+        ]
+    ):
+        return (
+            "TradePilot is designed to make an E*TRADE account AI-active. In the full product, the assistant connects through the E*TRADE API, stays aware of market data, research, portfolio context, and news, and helps you manage trading decisions through chat. You can ask it for analysis, portfolio help, entry and exit thinking, and buy or sell workflows. This public build demonstrates that experience with safe demo data."
+        )
+
     if "portfolio" in lower or "positions" in lower:
         return (
-            "This public demo is showing a sample portfolio with AAPL, ADBE, and NVDA so visitors can preview "
-            "the layout, P&L cards, and analytics panels. In the private build, this section is meant to reflect live account data."
+            "This demo is showing a sample portfolio with AAPL, ADBE, and NVDA so visitors can preview how TradePilot presents positions, P&L, and account context. In the full product, this view is meant to reflect your connected E*TRADE account and give the AI assistant the context it needs to help with decisions."
         )
 
     if "balance" in lower or "buying power" in lower or "cash" in lower:
         return (
             f"Demo account summary: ${DEMO_BALANCE['total_value']:,.2f} total value, "
-            f"${DEMO_BALANCE['cash']:,.2f} cash, and ${DEMO_BALANCE['buying_power']:,.2f} buying power."
+            f"${DEMO_BALANCE['cash']:,.2f} cash, and ${DEMO_BALANCE['buying_power']:,.2f} buying power. "
+            "In the full product, this is the account context the AI assistant uses to help size trades, review risk, and manage your next move."
         )
 
     order = extract_order(message)
@@ -199,11 +215,11 @@ def generate_demo_response(message: str) -> str:
             return (
                 f"Demo order preview: {order['action']} {order['quantity']} shares of {order['symbol']} "
                 f"at ${order['price']:.2f} limit. Last trade is ${quote['price']:.2f}. "
-                "This GitHub demo never sends real orders."
+                "In the full product, TradePilot is built to take this kind of chat request, evaluate it with account context and market inputs, and route the workflow through the E*TRADE API."
             )
         return (
             f"Demo order preview: {order['action']} {order['quantity']} shares of {order['symbol']} at market. "
-            f"Last trade is ${quote['price']:.2f}. This GitHub demo stops at preview mode."
+            f"Last trade is ${quote['price']:.2f}. In the full product, TradePilot is built to turn this into an AI-assisted execution workflow through the E*TRADE API."
         )
 
     symbol = extract_symbol(message)
@@ -213,12 +229,12 @@ def generate_demo_response(message: str) -> str:
         direction = "up" if quote["change"] >= 0 else "down"
         return (
             f"{quote['name']} ({quote['symbol']}) is ${quote['price']:.2f}, {direction} "
-            f"${abs(quote['change']):.2f} ({abs(quote['change_pct']):.2f}%) in this demo market feed."
+            f"${abs(quote['change']):.2f} ({abs(quote['change_pct']):.2f}%) in this demo market feed. "
+            "TradePilot is designed to combine quotes like this with research, portfolio context, and news so the AI assistant can help you make better trading decisions."
         )
 
     return (
-        "This is the public showcase build of the AI trading terminal. You can ask for quotes, balances, "
-        "portfolio context, or trade previews, and the app will respond with demo-safe data."
+        "TradePilot is built to make an E*TRADE account AI-active. Ask about quotes, portfolio context, account status, research, or trade workflows, and this public demo will show how the assistant experience works using safe sample data."
     )
 
 
@@ -272,20 +288,20 @@ def models():
             {
                 "id": "demo-assistant",
                 "name": "Demo Assistant",
-                "description": "Public-safe showcase mode",
+                "description": "AI-active E*TRADE workflow preview",
                 "available": True,
             },
             {
                 "id": "gpt-4",
                 "name": "GPT-4",
-                "description": "Private deployment option",
+                "description": "Full-product AI assistant option",
                 "available": False,
                 "setup": "Not enabled in the public demo",
             },
             {
                 "id": "claude-4.5",
                 "name": "Claude 4.5",
-                "description": "Private deployment option",
+                "description": "Full-product AI assistant option",
                 "available": False,
                 "setup": "Not enabled in the public demo",
             },
@@ -321,12 +337,12 @@ def place_order():
             "order_type": order_type,
             "current_price": quote["price"],
             "status": "PREVIEW_ONLY",
-            "message": "Public demo mode: this order was not sent to a broker.",
+            "message": "Demo preview only: this order was not sent to a broker. In the full product, this workflow is designed to run through the E*TRADE API.",
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
     )
 
 
 if __name__ == "__main__":
-    print("Starting public demo at http://127.0.0.1:8080")
+    print("Starting TradePilot for E*TRADE demo at http://127.0.0.1:8080")
     app.run(debug=True, port=8080, use_reloader=False)

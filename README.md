@@ -1,21 +1,24 @@
 # E*TRADE AI Trading Terminal Demo
 
-An Apple Stocks-inspired trading terminal concept for E*TRADE, built to showcase how a modern broker experience could combine market dashboards, research panels, portfolio visibility, and chat-driven trade workflows in one interface.
+TradePilot for E*TRADE is an AI-powered trading assistant concept built to make an E*TRADE account AI-active. It shows how a modern broker experience could combine market dashboards, research panels, portfolio visibility, live news awareness, and chat-driven trade workflows in one interface.
 
-This repository is the public demo edition of the project. It is designed for showcasing the software on GitHub without exposing private credentials, real account access, or live order execution.
+The core idea is simple: connect your E*TRADE account, activate an AI trading assistant through the E*TRADE API, and manage analysis, portfolio support, trade planning, and buy or sell workflows through natural conversation.
+
+This repository is the public demo edition of the project. It is designed to showcase that product vision on GitHub without exposing private credentials, real account access, or live order execution.
 
 ## About
 
-`A public demo of an E*TRADE-inspired AI trading terminal with live-style charts, research panels, portfolio views, and chat-based trade previews.`
+`AI-powered E*TRADE trading terminal that makes an account AI-active with research, news, portfolio context, and chat-driven trade workflows.`
 
 ## What this project shows
 
 - A polished three-panel trading UI inspired by Apple Stocks
 - Market cards and watchlist-driven chart views
 - Research panels for idea discovery and stock screening
+- A product direction where the assistant stays aware of market news and account context
 - Portfolio and balance widgets that show how account data is presented
-- A chat assistant flow for quotes, portfolio questions, and order previews
-- A clear path from conversational intent to trading actions
+- A chat assistant flow for quotes, portfolio questions, order previews, and AI-guided trade workflows
+- A clear path from conversational intent to E*TRADE API-backed actions in the full product
 
 ## Why this public demo exists
 
@@ -34,8 +37,8 @@ This demo keeps the product story and interface intact while removing anything s
 - Portfolio and balance values are sample data for presentation.
 - Market prices are seeded demo values with light random drift.
 - Research panels are populated with mock showcase data.
-- Trade flows stop at preview mode and never reach a broker.
-- Chat runs in a lightweight demo mode so the app is easy to open locally.
+- Trade workflows stop at preview mode and never reach a broker in this public build.
+- The copy and interaction model are designed to show how the full product would help manage an E*TRADE account through an AI assistant.
 
 ## Run locally
 
@@ -61,7 +64,7 @@ This repo includes a minimal `vercel.json` for deploying the Flask demo to Verce
 If you want the GitHub page to read well to visitors, use:
 
 - Repo name: `etrade-ai-trading-terminal-demo`
-- Short description: `Public demo of an E*TRADE-inspired AI trading terminal with charts, research panels, portfolio views, and chat-based trade previews.`
+- Short description: `AI-powered E*TRADE trading terminal that makes an account AI-active with research, news, portfolio context, and chat-driven trade workflows.`
 
 ## Notes
 
