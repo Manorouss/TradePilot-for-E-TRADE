@@ -19,6 +19,8 @@
             color: #ffffff;
             height: 100vh;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         /* Apple Stocks Color Palette */
@@ -126,7 +128,8 @@
             display: grid;
             grid-template-columns: 300px 1fr 350px;
             grid-template-rows: 1fr;
-            height: calc(100vh - 49px);
+            flex: 1;
+            min-height: 0;
             gap: 0;
         }
 
@@ -136,6 +139,7 @@
             overflow-y: auto;
             overflow-x: hidden;
             background: var(--bg-primary);
+            min-height: 0;
         }
 
         .panel::-webkit-scrollbar {
@@ -387,6 +391,7 @@
             border-left: 0.5px solid var(--separator);
             display: flex;
             flex-direction: column;
+            min-height: 0;
         }
 
         .chat-header {
@@ -414,6 +419,7 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
+            min-height: 0;
         }
 
         .message {
