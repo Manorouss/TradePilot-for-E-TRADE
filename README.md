@@ -48,6 +48,14 @@ python app.py
 
 Open `http://127.0.0.1:8080`.
 
+## Deploy on Vercel
+
+This repo includes a minimal `vercel.json` for deploying the Flask demo to Vercel.
+
+Suggested live demo section once deployed:
+
+- Live demo: `https://your-vercel-url.vercel.app`
+
 ## Repository positioning
 
 If you want the GitHub page to read well to visitors, use:
